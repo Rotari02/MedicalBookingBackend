@@ -135,6 +135,64 @@ router.delete('/deletePrescription/:prescriptionId', userAuthMiddleware, async (
     }
 });
 
+// Descarcă o rețetă
+router.get('/download/:prescriptionId', userAuthMiddleware, async (req, res) => {
+    try {
+        const { prescriptionId } = req.params;
+        const userId = req.user?.id;
+
+        if (!prescriptionId) {
+            return res.status(400).send("Rețeta nu există!");
+        }
+
+        const prescription = await (await db.getKnex())('prescriptions')
+            .where({ id: prescriptionId }).first();
+
+        if (!prescription) {
+            return res.status(404).send("Rețeta nu a fost găsită!");
+        }
+
+        // Verify if user has rights to download it
+        // A doctor or a patient can download it
+        const isDoctor = prescription.doctor_id === userId;
+        const isPatient = prescription.patient_id === userId;
+        
+        if (!isDoctor && !isPatient) {
+            return res.status(403).send("Nu sunteți autorizat să descărcați această rețetă!");
+        }
+
+        const filePath = prescription.file_path;
+        if (!filePath) {
+            return res.status(404).send("Fișierul nu există!");
+        }
+
+        const isAbsolute = filePath.startsWith('http');
+        const filename = filePath.split('/').pop() || 'reteta';
+
+        if (isAbsolute) {
+            // Proxy the file from Vercel Blob to force a download
+            const response = await fetch(filePath);
+            if (!response.ok) {
+                throw new Error("Failed to fetch file from storage");
+            }
+            
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
+            
+            const arrayBuffer = await response.arrayBuffer();
+            return res.send(Buffer.from(arrayBuffer));
+        } else {
+            // Serve the local file as a download
+            const path = await import('path');
+            const fullPath = path.resolve(process.cwd(), filePath);
+            return res.download(fullPath, filename);
+        }
+    } catch (error) {
+        console.error("Download error:", error);
+        return res.status(500).send("Eroare la descărcarea fișierului!");
+    }
+});
+
 router.get('/getPrescriptionsByDoctorId', userAuthMiddleware, async (req, res) => {
     try {
 
@@ -187,6 +245,7 @@ router.get('/getPrescriptionsByPatientId', userAuthMiddleware, async (req, res) 
         if (!userRights) {
             return sendJsonResponse(res, false, 403, "Nu sunteti autorizat!", []);
         }
+    
 
         const prescriptions = await (await db.getKnex())('users')
             .join('prescriptions', 'users.id', 'prescriptions.doctor_id')
