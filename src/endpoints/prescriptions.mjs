@@ -57,11 +57,11 @@ router.put('/updatePrescription/:prescriptionId', userAuthMiddleware, async (req
 
     try {
         const { prescriptionId } = req.params;
-        const { file_path } = req.body;
+        let { file_path } = req.body;
         const userId = req.user?.id;
 
         if (!prescriptionId) {
-            return sendJsonResponse(res, false, 400, "Reteta nu există!", []);
+            return sendJsonResponse(res, false, 400, "Rețeta nu există!", []);
         }
 
         const userRights = await (await db.getKnex())('user_rights')
@@ -77,7 +77,7 @@ router.put('/updatePrescription/:prescriptionId', userAuthMiddleware, async (req
         const prescription = await (await db.getKnex())('prescriptions')
             .where({ id: prescriptionId }).first();
 
-        if (!prescription) return sendJsonResponse(res, false, 404, "Reteta nu există!", []);
+        if (!prescription) return sendJsonResponse(res, false, 404, "Rețeta nu există!", []);
 
         if (req.files && req.files['file'] && req.files['file'][0]) {
             // Use smart upload function that automatically chooses storage method
@@ -86,14 +86,14 @@ router.put('/updatePrescription/:prescriptionId', userAuthMiddleware, async (req
             file_path = photoUrl;
         }
 
-        await db('prescriptions').where({ id: prescriptionId }).update({
+        await (await db.getKnex())('prescriptions').where({ id: prescriptionId }).update({
             file_path: file_path || prescription.file_path,
         });
 
-        const updated = await db('reservations').where({ id: reservationId }).first();
-        return sendJsonResponse(res, true, 200, "Rezervarea a fost actualizată cu succes!", { reservation: updated });
+        const updated = await (await db.getKnex())('prescriptions').where({ id: prescriptionId }).first();
+        return sendJsonResponse(res, true, 200, "Rețeta a fost actualizată cu succes!", { prescription: updated });
     } catch (error) {
-        return sendJsonResponse(res, false, 500, "Eroare la actualizarea rezervării!", { details: error.message });
+        return sendJsonResponse(res, false, 500, "Eroare la actualizarea rețetei!", { details: error.message });
     }
 });
 
@@ -105,7 +105,7 @@ router.delete('/deletePrescription/:prescriptionId', userAuthMiddleware, async (
         const userId = req.user?.id;
 
         if (!prescriptionId) {
-            return sendJsonResponse(res, false, 400, "Reteta nu există!", []);
+            return sendJsonResponse(res, false, 400, "Rețeta nu există!", []);
         }
 
         const userRights = await (await db.getKnex())('user_rights')
@@ -120,7 +120,7 @@ router.delete('/deletePrescription/:prescriptionId', userAuthMiddleware, async (
 
         const prescription = await (await db.getKnex())('prescriptions')
             .where({ id: prescriptionId }).first();
-        if (!prescription) return sendJsonResponse(res, false, 404, "Rezervarea nu există!", []);
+        if (!prescription) return sendJsonResponse(res, false, 404, "Rețeta nu există!", []);
 
         // Delete the image from Vercel Blob if it's a Blob URL
         if (prescription.file_path) {
@@ -129,9 +129,9 @@ router.delete('/deletePrescription/:prescriptionId', userAuthMiddleware, async (
         }
 
         await (await db.getKnex())('prescriptions').where({ id: prescriptionId }).del();
-        return sendJsonResponse(res, true, 200, "Rezervarea a fost ștearsă cu succes!", []);
+        return sendJsonResponse(res, true, 200, "Rețeta a fost ștearsă cu succes!", []);
     } catch (error) {
-        return sendJsonResponse(res, false, 500, "Eroare la ștergerea rezervării!", { details: error.message });
+        return sendJsonResponse(res, false, 500, "Eroare la ștergerea rețetei!", { details: error.message });
     }
 });
 

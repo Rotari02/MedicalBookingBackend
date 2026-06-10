@@ -10,4 +10,11 @@ exports.seed = async function (knex) {
     { id: 2, user_id: 2, right_id: 2 },
 
   ]);
+
+  // Reset sequences in PostgreSQL to avoid primary key duplicate errors on subsequent inserts
+  if (knex.client.config.client === 'postgresql' || knex.client.config.client === 'pg') {
+    await knex.raw("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1))");
+    await knex.raw("SELECT setval('rights_id_seq', COALESCE((SELECT MAX(id) FROM rights), 1))");
+    await knex.raw("SELECT setval('user_rights_id_seq', COALESCE((SELECT MAX(id) FROM user_rights), 1))");
+  }
 };

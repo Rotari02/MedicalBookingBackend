@@ -92,6 +92,8 @@ app.use((req, res, next) => {
 
 // Basic middleware
 app.use(express.json());
+// Serve static files from the public directory
+app.use('/public', express.static('public'));
 
 // Add CORS for frontend access (backup)
 app.use(cors({
