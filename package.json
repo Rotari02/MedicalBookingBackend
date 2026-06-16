@@ -13,14 +13,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://gitlab.com/davidharton/medical-booking-backend.git"
+    "url": ""
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://gitlab.com/davidharton/medical-booking-backend/issues"
+    "url": ""
   },
-  "homepage": "https://gitlab.com/davidharton/medical-booking-backend#readme",
+  "homepage": "",
   "dependencies": {
     "@vercel/blob": "^0.24.0",
     "cors": "^2.8.5",
